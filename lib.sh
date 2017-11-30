@@ -72,7 +72,7 @@ log_flags(){
     fi
     SERVICE_NAME="$1"
     FLAGS=$(echo -e "$2" |grep -Pio "$_LIB_FLAG_REGEX")
-    if [ -n "$_FLAGS" ];then
+    if [ -n "$FLAGS" ];then
         while read flag;do
             redis_client HMSET "$flag" service "$SERVICE_NAME" timestamp "$(date +%s)" >/dev/null
             redis_client SADD flags_unprocessed "$flag" >/dev/null
