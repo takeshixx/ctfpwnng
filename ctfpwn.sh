@@ -99,23 +99,6 @@ submit_flags(){
     fi
 }
 
-# Set capabilities for nmap/ncat. This is
-# required to run SYN-scans or listen on
-# low-range ports (<1024) without root
-# privileges.
-set_cap(){
-    if [ $# -lt 1 ];then
-        echo "Please provide a binary name."
-        return
-    fi
-    if [ -f "$1" ];then
-        BIN="$1"
-    else
-        BIN=$(which "$1")
-    fi
-    setcap cap_net_bind_service,cap_net_admin,cap_net_raw+eip "$BIN"
-}
-
 # Make sure everything we need is available.
 check_dependencies(){
     if ! ps -p $$ -oargs= | grep -i bash >/dev/null;then
@@ -139,8 +122,7 @@ check_dependencies(){
         exit 1
     else
         if ! getcap "$(which nmap)" | grep -q "cap_net_bind_service,cap_net_admin,cap_net_raw+eip";then
-            set_cap nmap
-            set_cap ncat
+            echo "Capabilities for Nmap not set! May requires to run run-targets.sh with root privileges."
         fi
     fi
     if [ ! -d "$_LIB_LOG_DIR" ];then

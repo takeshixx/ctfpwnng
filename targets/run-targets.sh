@@ -6,4 +6,13 @@ if [ $# -lt 1 ];then
     exit 2
 fi
 TARGETRANGE=$1
+if ! which nmap >/dev/null;then
+    echo "Nmap not found!"
+    exit 1
+else
+    if ! getcap "$(which nmap)" | grep -q "cap_net_bind_service,cap_net_admin,cap_net_raw+eip";then
+        echo "Please set the capabilities or run this script with root privileges."
+        echo "E.g.: setcap cap_net_bind_service,cap_net_admin,cap_net_raw+eip $(which nmap)"
+    fi
+fi
 nmap -sS --open -oG _current -p22,80,443,8080 $TARGETRANGE
