@@ -43,20 +43,6 @@ run_exploits(){
     log "Scheduled $((count*ips)) processes for ${count} exploit(s)."
 }
 
-# Check if a given file descriptor exists.
-check_file_descriptor(){
-    FD="$1"
-    rco="$(true 2>/dev/null >&"${FD}"; echo $?)"
-    rci="$(true 2>/dev/null <&"${FD}"; echo $?)"
-    if [[ "${rco}${rci}" = "11" ]] ; then
-        # FD is not readable/writable
-        return 1
-    else
-        # FD is readable/writable
-        return 0
-    fi
-}
-
 # This function will submit unprocessed flags
 # from Redis to the gameserver. It will take
 # care to move the accepted/expired/unknown
