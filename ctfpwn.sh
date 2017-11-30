@@ -6,7 +6,6 @@
 trap do_exit EXIT TERM
 source lib.sh
 
-_SEMAPHORE=$(mktemp -u "${_LIB_RUN_DIR}/sem.XXXXXXXX")
 _PARALLEL_JOBS=10
 _PARALLEL_LOOP_SLEEP=5
 _PARALLEL=$(which parallel)
@@ -14,7 +13,6 @@ _PARALLEL=$(which parallel)
 # The cleanup function that will be
 # called whenever this script exists.
 do_exit(){
-    rm -rf ${_SEMAPHORE}
     exec 666<&-
     echo "Exiting CTFPWN"
 }
@@ -162,8 +160,6 @@ main(){
         fi
         log "Spawning exploits"
         run_exploits
-        log "Waiting for jobs to be finished..."
-        $_PARALLEL --semaphore --id "$_SEMAPHORE" --wait --bar >> $_LIB_LOG_FILE
         log "Scheduling flag submission"
         submit_flags &
         log "Run finished, sleeping for ${_PARALLEL_LOOP_SLEEP}"
