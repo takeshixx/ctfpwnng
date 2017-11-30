@@ -15,7 +15,7 @@ _PARALLEL=$(which parallel)
 # called whenever this script exists.
 do_exit(){
     exec 666<&-
-    echo "Exiting CTFPWN"
+    log "Exiting CTFPWN"
 }
 
 # The main function for exploit scheduling.
@@ -136,7 +136,8 @@ check_dependencies(){
 }
 
 main(){
-    echo "Starting CTFPWN"
+    log
+    log "Starting CTFPWN"
     check_dependencies
     echo "Dependency check passed"
     while true;do
@@ -147,7 +148,7 @@ main(){
         if [ -f targets/_current ];then
             cat targets/_current | tail -n +2 | grep -P "$_LIB_REGEX_IP" | grep -i open | awk '{print $2}' > targets/_all
         else
-            echo "No targets found! Please run targets/run.sh"
+            log_error "No targets found! Please run targets/run-targets.sh"
             exit 1
         fi
         log "Spawning exploits"
