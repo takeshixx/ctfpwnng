@@ -6,7 +6,8 @@
 trap do_exit EXIT TERM
 source lib.sh
 
-_PARALLEL_JOBS=10
+_PARALLEL_JOBS=150
+_PARALLEL_TIMEOUT="250%"
 _PARALLEL_LOOP_SLEEP=5
 _PARALLEL=$(which parallel)
 
@@ -36,7 +37,7 @@ run_exploits(){
             continue
         fi
         log "Spawing ${SERVICE} (exploits/${SERVICE}/run.sh)"
-        $_PARALLEL --jobs $_PARALLEL_JOBS -a targets/_all "/bin/bash -c 'cd exploits/${SERVICE}/; ./run.sh {}'" >> $_LIB_LOG_FILE
+        $_PARALLEL --jobs $_PARALLEL_JOBS --timeout "${_PARALLEL_TIMEOUT}" -a targets/_all "/bin/bash -c 'cd exploits/${SERVICE}/; ./run.sh {}'" >> $_LIB_LOG_FILE &
         count=$((count+1))
     done
     log "Scheduled $((count*ips)) processes for ${count} exploits."
@@ -160,6 +161,8 @@ main(){
         fi
         log "Spawning exploits"
         run_exploits
+        log "Waiting for background jobs"
+        wait
         log "Scheduling flag submission"
         submit_flags &
         log "Run finished, sleeping for ${_PARALLEL_LOOP_SLEEP}"
