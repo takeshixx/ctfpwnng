@@ -43,6 +43,12 @@ is_var_empty(){
     fi
 }
 
+# This function saves flags to Redis. The
+# Arguments:
+#   SERVICE_NAME - The name of the corresponding
+#                  service.
+#   FLAGS        - A list of flags, one per
+#                  line.
 log_flags(){
     if [ $# -ne 2 ];then
         echo "Please provide the service name and flags to the log_flags function!"
@@ -60,7 +66,10 @@ log_flags(){
 
 # Check if the flag has already been processed,
 # e.g. if it has been accepted, expired or
-# not a valid flag at all.
+# not a valid flag at all. Should be used to
+# prevent submitting flags multiple times.
+# Arguments:
+#   FLAG - The flag that should be checked.
 flag_already_processed(){
     FLAG=$1
     if [ -z "$FLAG" ];then
@@ -78,6 +87,11 @@ flag_already_processed(){
 }
 
 # Generic function for Redis interaction.
+# Arguments:
+#   REDIS_CMD - Whatever will be passed
+#               to this function will be
+#               interpreted as a Redis
+#               query.
 redis_client(){
     redis-cli -s "$_LIB_REDIS_SOCKET" --raw $*
 }

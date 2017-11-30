@@ -11,12 +11,20 @@ _PARALLEL_JOBS=10
 _PARALLEL_LOOP_SLEEP=5
 _PARALLEL=$(which parallel)
 
+# The cleanup function that will be
+# called whenever this script exists.
 do_exit(){
     rm -rf ${_SEMAPHORE}
     exec 666<&-
     echo "Exiting CTFPWN"
 }
 
+# The main function for exploit scheduling.
+# This function will start all the exploits
+# that are not disabled (e.g. a .disabled
+# file is present in the exploit directory
+# or if the directory name starts with a
+# underscore (_).
 run_exploits(){
     count=0
     ips=$(wc -l targets/_all | awk '{print $1}')
@@ -36,6 +44,10 @@ run_exploits(){
     log "Scheduled $((count*ips)) processes for ${count} exploits."
 }
 
+# This function will submit unprocessed flags
+# from Redis to the gameserver. It will take
+# care to move the accepted/expired/unknown
+# flags to the corresponding Redis sets.
 submit_flags(){
     flags_unprocessed=$(redis_client SMEMBERS "$_LIB_REDIS_FLAG_SET_UNPROCESSED" | tr " " "\n")
     log "Trying to process $(echo ${flags_unprocessed} | wc -l) flags"
@@ -82,7 +94,10 @@ submit_flags(){
     done
 }
 
-# Set capabilities for nmap/ncat.
+# Set capabilities for nmap/ncat. This is
+# required to run SYN-scans or listen on
+# low-range ports (<1024) without root
+# privileges.
 set_cap(){
     if [ $# -lt 1 ];then
         echo "Please provide a binary name."
