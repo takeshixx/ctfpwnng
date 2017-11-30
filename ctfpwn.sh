@@ -37,7 +37,7 @@ run_exploits(){
             continue
         fi
         log "Spawing ${SERVICE} (exploits/${SERVICE}/run.sh)"
-        $_PARALLEL --jobs $_PARALLEL_JOBS --timeout "${_PARALLEL_TIMEOUT}" -a targets/_all "/bin/bash -c 'cd exploits/${SERVICE}/; ./run.sh {}'" >> $_LIB_LOG_FILE &
+        "$_PARALLEL" --jobs "$_PARALLEL_JOBS" --timeout "${_PARALLEL_TIMEOUT}" -a targets/_all "/bin/bash -c 'cd exploits/${SERVICE}/; ./run.sh {}'" >> "$_LIB_LOG_FILE" &
         count=$((count+1))
     done
     log "Scheduled $((count*ips)) processes for ${count} exploits."
@@ -49,7 +49,7 @@ run_exploits(){
 # flags to the corresponding Redis sets.
 submit_flags(){
     flags_unprocessed=$(redis_client SMEMBERS "$_LIB_REDIS_FLAG_SET_UNPROCESSED" | tr " " "\n")
-    log "Trying to process $(echo ${flags_unprocessed} | wc -l) flags"
+    log "Trying to process $(echo -e "${flags_unprocessed}" | wc -l) flag(s)"
     if [ -z "$flags_unprocessed" ];then
         echo "No unprocessed flags found"
         return
@@ -63,26 +63,27 @@ submit_flags(){
         return
     fi
     # Read the welcome banner
-    timeout $_LIB_GAMESERVER_TIMEOUT cat <&666 >/dev/null
+    timeout "$_LIB_GAMESERVER_TIMEOUT" cat <&666 >/dev/null
     # Loop as long as the FD is writable
-    while command >&666;do
+    #while command >&666 2>&1 >/dev/null;do
+    while check_file_descriptor 666;do
         while read flag;do
             if flag_already_processed "$flag";then
-                redis_client SREM $_LIB_REDIS_FLAG_SET_UNPROCESSED $flag
+                redis_client SREM "$_LIB_REDIS_FLAG_SET_UNPROCESSED" $flag
                 continue
             fi
-            echo $flag >&666
-            retval=$(timeout $_LIB_GAMESERVER_TIMEOUT cat <&666)
-            if $(echo "$retval" | grep -Piq "accept");then
+            echo "$flag" >&666
+            retval=$(timeout "$_LIB_GAMESERVER_TIMEOUT" cat <&666)
+            if echo "$retval" | grep -Piq "accept";then
                 debug "Flag ${flag} has been accepted."
-                redis_client SMOVE $_LIB_REDIS_FLAG_SET_UNPROCESSED $_LIB_REDIS_FLAG_SET_ACCEPTED $flag >/dev/null
-            elif $(echo "$retval" | grep -Piq "invalid|not valid|unknown|own flag|no such");then
+                redis_client SMOVE "$_LIB_REDIS_FLAG_SET_UNPROCESSED" "$_LIB_REDIS_FLAG_SET_ACCEPTED" "$flag" >/dev/null
+            elif echo "$retval" | grep -Piq "invalid|not valid|unknown|own flag|no such";then
                 debug "Flag ${flag} is not valid!"
-                redis_client SMOVE $_LIB_REDIS_FLAG_SET_UNPROCESSED $_LIB_REDIS_FLAG_SET_UNKNOWN $flag >/dev/null
-            elif $(echo "$retval" | grep -Piq "expired");then
+                redis_client SMOVE "$_LIB_REDIS_FLAG_SET_UNPROCESSED" "$_LIB_REDIS_FLAG_SET_UNKNOWN" "$flag" >/dev/null
+            elif echo "$retval" | grep -Piq "expired";then
                 debug "Flag ${flag} is expired!"
-                redis_client SMOVE $_LIB_REDIS_FLAG_SET_UNPROCESSED $_LIB_REDIS_FLAG_SET_EXPIRED $flag >/dev/null
-            elif $(echo "$retval" | grep -Piq "corresponding|down");then
+                redis_client SMOVE "$_LIB_REDIS_FLAG_SET_UNPROCESSED" "$_LIB_REDIS_FLAG_SET_EXPIRED" "$flag" >/dev/null
+            elif echo "$retval" | grep -Piq "corresponding|down";then
                 debug "Flag ${flag} cannot be submitted: service is down!"
             else
                 log "Unknown flag state: ${retval}"
@@ -132,18 +133,18 @@ check_dependencies(){
         echo "Nmap not found!"
         exit 1
     else
-        if ! getcap $(which nmap) | grep -q "cap_net_bind_service,cap_net_admin,cap_net_raw+eip";then
+        if ! getcap "$(which nmap)" | grep -q "cap_net_bind_service,cap_net_admin,cap_net_raw+eip";then
             set_cap nmap
             set_cap ncat
         fi
     fi
     if [ ! -d "$_LIB_LOG_DIR" ];then
         echo "${_LIB_LOG_DIR} not found, creating it."
-        mkdir -p $_LIB_LOG_DIR
+        mkdir -p "$_LIB_LOG_DIR"
     fi
     if [ ! -d "$_LIB_RUN_DIR" ];then
         echo "${_LIB_RUN_DIR} not found, creating it."
-        mkdir -p $_LIB_RUN_DIR
+        mkdir -p "$_LIB_RUN_DIR"
     fi
 }
 
@@ -152,12 +153,15 @@ main(){
     check_dependencies
     echo "Dependency check passed"
     while true;do
-        log "Preparing target list"
+        log
+        log "---------------------"
+        log
+        debug "Preparing target list"
         if [ -f targets/_current ];then
-            cat targets/_current | tail -n +2 | grep -P $_LIB_REGEX_IP | grep -i open | awk '{print $2}' > targets/_all
+            cat targets/_current | tail -n +2 | grep -P "$_LIB_REGEX_IP" | grep -i open | awk '{print $2}' > targets/_all
         else
             echo "No targets found! Please run targets/run.sh"
-            exit
+            exit 1
         fi
         log "Spawning exploits"
         run_exploits
@@ -166,7 +170,7 @@ main(){
         log "Scheduling flag submission"
         submit_flags &
         log "Run finished, sleeping for ${_PARALLEL_LOOP_SLEEP}"
-        sleep $_PARALLEL_LOOP_SLEEP
+        sleep "$_PARALLEL_LOOP_SLEEP"
     done
 }
 
