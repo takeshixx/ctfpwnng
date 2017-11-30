@@ -71,7 +71,7 @@ log_flags(){
         exit
     fi
     SERVICE_NAME="$1"
-    FLAGS="$2"
+    FLAGS=$(echo -e "$2" |grep -Pio "$_LIB_FLAG_REGEX")
     if [ -n "$_FLAGS" ];then
         while read flag;do
             redis_client HMSET "$flag" service "$SERVICE_NAME" timestamp "$(date +%s)" >/dev/null
