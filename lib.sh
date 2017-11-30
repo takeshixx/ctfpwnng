@@ -26,8 +26,24 @@ debug(){
 # Log output to a logfile. Should be used
 # to keep track of exploit iterations
 # and stuff like that.
+_log(){
+    echo "[$(date +'%T')] ${*}" >> "$_LIB_LOG_FILE"
+}
+
 log(){
-    echo "[$(date)] ${*}" >> "$_LIB_LOG_FILE"
+    _log "[*] $@"
+}
+
+log_info(){
+    _log "[+] $@"
+}
+
+log_error(){
+    _log "[ERROR] $@"
+}
+
+log_warning(){
+    _log "[WARNING] $@"
 }
 
 # Helper function to check if a variable

@@ -33,14 +33,14 @@ run_exploits(){
             continue
         fi
         if [ ! -x "exploits/${SERVICE}/run.sh" ];then
-            echo "exploits/${SERVICE}/run.sh is not executable!"
+            log_error "exploits/${SERVICE}/run.sh is not executable!"
             continue
         fi
-        log "Spawing ${SERVICE} (exploits/${SERVICE}/run.sh)"
+        log_info "Spawing ${SERVICE} (exploits/${SERVICE}/run.sh)"
         "$_PARALLEL" --jobs "$_PARALLEL_JOBS" --timeout "${_PARALLEL_TIMEOUT}" -a targets/_all "/bin/bash -c 'cd exploits/${SERVICE}/; ./run.sh {}'" >> "$_LIB_LOG_FILE" &
         count=$((count+1))
     done
-    log "Scheduled $((count*ips)) processes for ${count} exploit(s)."
+    log_info "Scheduled $((count*ips)) processes for ${count} exploit(s)."
 }
 
 # This function will submit unprocessed flags
@@ -49,21 +49,22 @@ run_exploits(){
 # flags to the corresponding Redis sets.
 submit_flags(){
     flags_unprocessed=$(redis_client SMEMBERS "$_LIB_REDIS_FLAG_SET_UNPROCESSED" | tr " " "\n")
-    log "Trying to process $(echo -e "${flags_unprocessed}" | wc -l) flag(s)"
+    log_info "Trying to process $(echo -e "${flags_unprocessed}" | wc -l) flag(s)"
     if [ -z "$flags_unprocessed" ];then
-        echo "No unprocessed flags found"
+        log "No unprocessed flags found"
         return
     fi
     if ! exec 666<>/dev/tcp/localhost/9000;then
-        echo "Gameserver connection refused!"
+        log_error "Gameserver connection refused! Postponing flag submission."
         return
     fi
     if ! command >&666; then
-        echo "Flag submission FD 666 is not writable!"
+        log_error "Flag submission FD 666 is not writable!"
         return
     fi
     # Read the welcome banner
     timeout "$_LIB_GAMESERVER_TIMEOUT" cat <&666 >/dev/null
+    success_count=0
     # Loop as long as the FD is writable
     #while command >&666 2>&1 >/dev/null;do
     while check_file_descriptor 666;do
@@ -77,6 +78,7 @@ submit_flags(){
             if echo "$retval" | grep -Piq "accept";then
                 debug "Flag ${flag} has been accepted."
                 redis_client SMOVE "$_LIB_REDIS_FLAG_SET_UNPROCESSED" "$_LIB_REDIS_FLAG_SET_ACCEPTED" "$flag" >/dev/null
+                success_count=$((success_count+1))
             elif echo "$retval" | grep -Piq "invalid|not valid|unknown|own flag|no such";then
                 debug "Flag ${flag} is not valid!"
                 redis_client SMOVE "$_LIB_REDIS_FLAG_SET_UNPROCESSED" "$_LIB_REDIS_FLAG_SET_UNKNOWN" "$flag" >/dev/null
@@ -86,12 +88,15 @@ submit_flags(){
             elif echo "$retval" | grep -Piq "corresponding|down";then
                 debug "Flag ${flag} cannot be submitted: service is down!"
             else
-                log "Unknown flag state: ${retval}"
+                log_error "Unknown flag state: ${retval}"
             fi
         done <<< "$flags_unprocessed"
         # Close the FD/socket
         exec 666<&-
     done
+    if [ "$success_count" -gt 0 ];then
+        log_info "Successfully submitted ${success_count} flag(s)."
+    fi
 }
 
 # Set capabilities for nmap/ncat. This is
@@ -169,7 +174,7 @@ main(){
         wait
         log "Scheduling flag submission"
         submit_flags &
-        log "Run finished, sleeping for ${_PARALLEL_LOOP_SLEEP}"
+        log "Run finished, sleeping for ${_PARALLEL_LOOP_SLEEP} secs"
         sleep "$_PARALLEL_LOOP_SLEEP"
     done
 }
