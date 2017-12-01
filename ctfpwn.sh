@@ -14,7 +14,7 @@ _PARALLEL=$(which parallel)
 # The cleanup function that will be
 # called whenever this script exists.
 do_exit(){
-    exec "${_LIB_GAMESERVER_FD}"<&-
+    exec 666<&-
     log "Exiting CTFPWN"
 }
 
