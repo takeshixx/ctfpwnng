@@ -1,4 +1,6 @@
-_log/*
+_logs
+_logs/*
+_run
 _run/*
 targets/_current
 targets/_all
