@@ -36,19 +36,19 @@ _log(){
 }
 
 log(){
-    _log "[*] $@"
+    _log "[*] $*"
 }
 
 log_info(){
-    _log "[+] $@"
+    _log "[+] $*"
 }
 
 log_error(){
-    _log "[ERROR] $@"
+    _log "[ERROR] $*"
 }
 
 log_warning(){
-    _log "[WARNING] $@"
+    _log "[WARNING] $*"
 }
 
 # Helper function to check if a variable
@@ -167,7 +167,7 @@ submit_flags_tcp(){
     while check_file_descriptor 666;do
         while read flag;do
             if flag_already_processed "$flag";then
-                redis_client SREM "$_LIB_REDIS_FLAG_SET_UNPROCESSED" $flag
+                redis_client SREM "$_LIB_REDIS_FLAG_SET_UNPROCESSED" "$flag"
                 continue
             fi
             echo "$flag" >&666
@@ -216,10 +216,13 @@ submig_flags_http(){
         log_error "HTTP flag submission returned invalid response: ${curl_out}"
         return
     fi
+    local msg
+    local status
+    local flag
     while read -r line;do
-        local msg=$(echo -e "${line}" | jq -r ".msg")
-        local status=$(echo "${line}" | jq -r ".status")
-        local flag=$(echo "${line}" | jq -r ".flag")
+        msg=$(echo -e "${line}" | jq -r ".msg")
+        status=$(echo "${line}" | jq -r ".status")
+        flag=$(echo "${line}" | jq -r ".flag")
         if $status;then
             redis_client SMOVE "$_LIB_REDIS_FLAG_SET_UNPROCESSED" "$_LIB_REDIS_FLAG_SET_ACCEPTED" "$flag" >/dev/null
             success_count=$((success_count+1))
