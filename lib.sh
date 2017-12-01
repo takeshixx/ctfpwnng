@@ -206,7 +206,6 @@ submig_flags_http(){
     flags_formatted="${flags_formatted::-1}"
     flags_formatted="${flags_formatted}]"
     curl_out=$(curl -s -H "X-Team-Token: ${_RUCTFE_TEAM_TOKEN}" -X PUT -d "${flags_formatted}" "${_LIB_GAMESERVER_URL}")
-    echo "$curl_out"
     if [ -z "${curl_out}" ];then
         log_error "curl command did not return any output!"
         return
