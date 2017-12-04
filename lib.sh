@@ -1,12 +1,8 @@
 _DEBUG=
-#_LIB_GAMESERVER_HOST="flags.ructfe.org"
-#_LIB_GAMESERVER_PORT="31337"
 _LIB_GAMESERVER_HOST="127.0.0.1"
 _LIB_GAMESERVER_PORT="9000"
-#_LIB_GAMESERVER_URL="http://monitor.ructfe.org/flags"
 _LIB_GAMESERVER_URL=http://127.0.0.1:5000/flags
-_LIB_GAMESERVER_SUBMIT_VIA_HTTP=true
-_RUCTFE_TEAM_TOKEN=TEST123
+_LIB_GAMESERVER_SUBMIT_VIA_HTTP=
 # --
 _LIB_FLAG_REGEX="\w{31}="
 _LIB_REGEX_IP="[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}"
@@ -19,6 +15,14 @@ _LIB_REDIS_FLAG_SET_UNPROCESSED="flags_unprocessed"
 _LIB_REDIS_FLAG_SET_ACCEPTED="flags_accepted"
 _LIB_REDIS_FLAG_SET_EXPIRED="flags_expired"
 _LIB_REDIS_FLAG_SET_UNKNOWN="flags_unknown"
+_LIB_REGEX_SUBMISSION_ACCEPTED="accept"
+_LIB_REGEX_SUBMISSION_INVALID="invalid|not valid|unknown|your own|own flag|no such"
+_LIB_REGEX_SUBMISSION_EXPIRED="expired|already submitted|too old"
+_LIB_REGEX_SUBMISSION_DOWN="corresponding|service is down"
+
+if [ -f "localconf.sh" ];then
+    source localconf.sh
+fi
 
 # Print debug messages, most likely only
 # relevant during development.
@@ -138,12 +142,14 @@ check_file_descriptor(){
 submit_flags(){
     flags_unprocessed=$(redis_client SMEMBERS "$_LIB_REDIS_FLAG_SET_UNPROCESSED" | tr " " "\n")
     log_info "Trying to process $(echo -e "${flags_unprocessed}" | wc -l) flag(s)"
-    if [ -z "$flags_unprocessed" ];then
+    flag_count=$(echo -e "${flags_unprocessed}" | wc -l)
+    flag_count=$((flag_count-1))
+    if [ -z "$flag_count" ];then
         log "No unprocessed flags found"
         return
     fi
     if [ -n "$_LIB_GAMESERVER_SUBMIT_VIA_HTTP" ];then
-        submig_flags_http "$flags_unprocessed"
+        submit_flags_http "$flags_unprocessed"
     else
         submit_flags_tcp "$flags_unprocessed"
     fi
@@ -172,17 +178,17 @@ submit_flags_tcp(){
             fi
             echo "$flag" >&666
             retval=$(timeout "$_LIB_GAMESERVER_TIMEOUT" cat <&666)
-            if echo "${retval}" | grep -Piq "accept";then
+            if echo "${retval}" | grep -Piq "${_LIB_REGEX_SUBMISSION_ACCEPTED}";then
                 debug "Flag ${flag} has been accepted."
                 redis_client SMOVE "$_LIB_REDIS_FLAG_SET_UNPROCESSED" "$_LIB_REDIS_FLAG_SET_ACCEPTED" "$flag" >/dev/null
                 success_count=$((success_count+1))
-            elif echo "${retval}" | grep -Piq "invalid|not valid|unknown|your own|own flag|no such";then
+            elif echo "${retval}" | grep -Piq "${_LIB_REGEX_SUBMISSION_INVALID}";then
                 debug "Flag ${flag} is not valid!"
                 redis_client SMOVE "$_LIB_REDIS_FLAG_SET_UNPROCESSED" "$_LIB_REDIS_FLAG_SET_UNKNOWN" "$flag" >/dev/null
-            elif echo "${retval}" | grep -Piq "expired|already submitted";then
+            elif echo "${retval}" | grep -Piq "${_LIB_REGEX_SUBMISSION_EXPIRED}";then
                 debug "Flag ${flag} is expired!"
                 redis_client SMOVE "$_LIB_REDIS_FLAG_SET_UNPROCESSED" "$_LIB_REDIS_FLAG_SET_EXPIRED" "$flag" >/dev/null
-            elif echo "${retval}" | grep -Piq "corresponding|service is down";then
+            elif echo "${retval}" | grep -Piq "${_LIB_REGEX_SUBMISSION_DOWN}";then
                 service_down=$(redis_client HMGET "${flag}" service)
                 log_warning "Flag ${flag} cannot be submitted: service *${service_down}* is down!"
             else
@@ -197,14 +203,25 @@ submit_flags_tcp(){
     fi
 }
 
-submig_flags_http(){
+# RuCTFE 2017 introduced a HTTP-based
+# flag submission. This function will
+# process flags via the JSON API.
+submit_flags_http(){
     flags_unprocessed="$1"
     flags_formatted="["
     while read flag;do
+        if flag_already_processed "$flag";then
+            redis_client SREM "$_LIB_REDIS_FLAG_SET_UNPROCESSED" "$flag" >/dev/null
+            continue
+        fi
         flags_formatted="${flags_formatted}\"${flag}\","
     done <<< "$flags_unprocessed"
     flags_formatted="${flags_formatted::-1}"
     flags_formatted="${flags_formatted}]"
+    if [ -z "${_RUCTFE_TEAM_TOKEN}" ];then
+        echo "RuCTFE Team Token not found!"
+        return
+    fi
     curl_out=$(curl -s -H "X-Team-Token: ${_RUCTFE_TEAM_TOKEN}" -X PUT -d "${flags_formatted}" "${_LIB_GAMESERVER_URL}")
     if [ -z "${curl_out}" ];then
         log_error "curl command did not return any output!"
@@ -224,17 +241,19 @@ submig_flags_http(){
         status=$(echo "${line}" | jq -r ".status")
         flag=$(echo "${line}" | jq -r ".flag")
         if $status;then
+            echo "${msg}"
             redis_client SMOVE "$_LIB_REDIS_FLAG_SET_UNPROCESSED" "$_LIB_REDIS_FLAG_SET_ACCEPTED" "$flag" >/dev/null
             success_count=$((success_count+1))
         else
-            if echo "${msg}" | grep -Piq "no such flag|flag is your own";then
+            echo "${msg}"
+            if echo "${msg}" | grep -Piq "${_LIB_REGEX_SUBMISSION_INVALID}";then
                 redis_client SMOVE "$_LIB_REDIS_FLAG_SET_UNPROCESSED" "$_LIB_REDIS_FLAG_SET_UNKNOWN" "$flag" >/dev/null
-            elif echo "${msg}" | grep -Piq "expired|already submitted";then
+            elif echo "${msg}" | grep -Piq "${_LIB_REGEX_SUBMISSION_EXPIRED}";then
                 redis_client SMOVE "$_LIB_REDIS_FLAG_SET_UNPROCESSED" "$_LIB_REDIS_FLAG_SET_EXPIRED" "$flag" >/dev/null
-            elif echo "${msg}" | grep -Piq "corresponding|down";then
+            elif echo "${msg}" | grep -Piq "${_LIB_REGEX_SUBMISSION_DOWN}";then
                 log_warning "Flag ${flag} cannot be submitted: service is down!"
             else
-                log_error "Unknown flag state: ${retval}"
+                log_error "Unknown flag state: ${msg}"
             fi
         fi
     done <<< "$json_input"
