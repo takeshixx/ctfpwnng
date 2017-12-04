@@ -19,6 +19,10 @@ _LIB_REGEX_SUBMISSION_ACCEPTED="accept"
 _LIB_REGEX_SUBMISSION_INVALID="invalid|not valid|unknown|your own|own flag|no such"
 _LIB_REGEX_SUBMISSION_EXPIRED="expired|already submitted|too old"
 _LIB_REGEX_SUBMISSION_DOWN="corresponding|service is down"
+_LIB_PARALLEL_JOBS=150
+_LIB_PARALLEL_TIMEOUT="250%"
+_LIB_PARALLEL_LOOP_SLEEP=5
+_LIB_PARALLEL=$(which parallel)
 
 if [ -f "localconf.sh" ];then
     source localconf.sh
@@ -281,7 +285,7 @@ run_exploits(){
             continue
         fi
         log_info "Spawing ${SERVICE} (exploits/${SERVICE}/run.sh)"
-        "$_PARALLEL" --jobs "$_PARALLEL_JOBS" --timeout "${_PARALLEL_TIMEOUT}" -a targets/_all "/bin/bash -c 'cd exploits/${SERVICE}/; ./run.sh {}'" >> "$_LIB_LOG_FILE" &
+        "$_LIB_PARALLEL" --jobs "${_LIB_PARALLEL_JOBS}" --timeout "${_LIB_PARALLEL_TIMEOUT}" -a targets/_all "/bin/bash -c 'cd exploits/${SERVICE}/; ./run.sh {}'" >> "$_LIB_LOG_FILE" &
         count=$((count+1))
     done
     log_info "Scheduled $((count*ips)) processes for ${count} exploit(s)."

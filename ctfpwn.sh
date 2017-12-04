@@ -6,11 +6,6 @@
 trap do_exit EXIT TERM
 source lib.sh
 
-_PARALLEL_JOBS=150
-_PARALLEL_TIMEOUT="250%"
-_PARALLEL_LOOP_SLEEP=5
-_PARALLEL=$(which parallel)
-
 # The cleanup function that will be
 # called whenever this script exists.
 do_exit(){
@@ -40,8 +35,8 @@ main(){
         wait
         log "Scheduling flag submission"
         submit_flags &
-        log "Run finished, sleeping for ${_PARALLEL_LOOP_SLEEP} secs"
-        sleep "$_PARALLEL_LOOP_SLEEP"
+        log "Run finished, sleeping for ${_LIB_PARALLEL_LOOP_SLEEP} secs"
+        sleep "$_LIB_PARALLEL_LOOP_SLEEP"
     done
 }
 
