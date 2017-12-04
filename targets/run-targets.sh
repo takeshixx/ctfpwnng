@@ -15,4 +15,6 @@ else
         echo "E.g.: setcap cap_net_bind_service,cap_net_admin,cap_net_raw+eip $(which nmap)"
     fi
 fi
-nmap -sS --open -oG _current -p22,80,443,8080 $TARGETRANGE
+# RuCTFE 2017
+#nmap -sS --open -oG _current -p22,7483,30303,8080,14473,8081,8082,4280 $TARGETRANGE
+nmap -sS --open -oG _current -p22,80,8080 $TARGETRANGE
