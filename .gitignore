@@ -4,3 +4,4 @@ _run
 _run/*
 targets/_current
 targets/_all
+localconf.sh
