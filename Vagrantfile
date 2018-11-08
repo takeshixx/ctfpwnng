@@ -65,7 +65,7 @@ Vagrant.configure("2") do |config|
   # documentation for more information about their specific syntax and use.
   config.vm.provision "shell", inline: <<-SHELL
     apt update
-    apt install -y git redis parallel jq nmap python2
+    apt install -y git redis parallel jq nmap python python-pip python python3-pip
     
     echo "unixsocket /run/redis/redis.sock" >> /etc/redis/redis.conf
     echo "unixsocketperm 777" >> /etc/redis/redis.conf
@@ -76,5 +76,7 @@ Vagrant.configure("2") do |config|
     
     sudo -u vagrant git clone https://github.com/takeshixx/ctfpwnng.git /home/vagrant/ctfpwnng
     cd /home/vagrant/ctfpwnng/tests/ && sudo -u vagrant ./run-tests.sh
+    
+    pip3 install flask
   SHELL
 end
