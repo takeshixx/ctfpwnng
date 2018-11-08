@@ -8,6 +8,25 @@ Next-gen automation framework for attack-defense CTFs.
 * Nmap
 * GNU parallel
 
+## Configuration
+
+Per-CTF configuration can be done in a local configuration file called `localconf.sh`. Variables for the whole framework can be overwritten in Bash syntax. The following `localconf.sh` shows a configuration example for a RuCTFE:
+
+```
+_LIB_GAMESERVER_HOST="flags.ructfe.org"
+_LIB_GAMESERVER_PORT="31337"
+_LIB_GAMESERVER_URL="http://monitor.ructfe.org/flags"
+_RUCTFE_TEAM_TOKEN="900008d90-c13c-4242-a801-825558d222f7"
+```
+
+*Note*: The `_RUCTFE_TEAM_TOKEN` is provided in the `checker_token.txt` file that is included in the team configuration.
+
+*Note*: RuCTFE allows to submit flags either via TCP (default) or HTTP. The following variable can be set to use HTTP submission:
+
+```
+_LIB_GAMESERVER_SUBMIT_VIA_HTTP=yes
+```
+
 ## Usage
 
 ```
