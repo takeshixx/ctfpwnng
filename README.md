@@ -19,7 +19,7 @@ _LIB_GAMESERVER_URL="http://monitor.ructfe.org/flags"
 _RUCTFE_TEAM_TOKEN="900008d90-c13c-4242-a801-825558d222f7"
 ```
 
-*Note*: The `_RUCTFE_TEAM_TOKEN` is provided in the `checker_token.txt` file that is included in the team configuration.
+*Note*: The **_RUCTFE_TEAM_TOKEN** is provided in the `checker_token.txt` file that is included in the team configuration.
 
 *Note*: RuCTFE allows to submit flags either via TCP (default) or HTTP. The following variable can be set to use HTTP submission:
 
