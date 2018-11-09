@@ -12,9 +12,9 @@ An exploit tries to get a flag/the flags from a single target system. The schedu
 
 ## Dependencies
 
-* Redis (redis-server and redis-cli)
-* Nmap
-* GNU parallel
+* [Redis](https://redis.io/) (redis-server and redis-cli)
+* [Nmap](https://nmap.org/)
+* [GNU parallel](https://www.gnu.org/software/parallel/)
 
 ## Configuration
 
@@ -45,11 +45,17 @@ _LIB_GAMESERVER_SUBMIT_VIA_HTTP=yes
 
 ### Target Identification
 
-The ```targets``` directory includes a wrapper script (```run-targets.sh```) that runs Nmap scans on the target range in order to identify alive hosts. This script should run regularly as a cronjob (TBD). Before ```ctfpwn.sh``` can be started, the script should run at least once to create a initial output file:
+The ```targets``` directory includes a wrapper script (```run-targets.sh```) that runs Nmap scans on the target range in order to identify alive hosts. Before ```ctfpwn.sh``` can be started, the script should run at least once to create a initial output file:
 
 ```
 cd targets
 ./run-targets.sh
+```
+
+This script should run regularly as a cronjob. The following example shows how to run the script every five minutes:
+
+```
+*/5 * * * * cd /home/user/ctfpwnng/targets && ./run-targets.sh
 ```
 
 ### Add Exploits
