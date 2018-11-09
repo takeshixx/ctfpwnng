@@ -1,6 +1,14 @@
 # CTFPWNng
 
-Next-gen automation framework for attack-defense CTFs.
+A simple framework that helps to automate execution of exploits for attack-defense CTFs. CTFPWNng schedules execution of exploits for all available/reachable targets and stores flags in a Redis queue. It also handles periodic submission of flags to the gameserver.
+
+An exploit has three properties:
+
+* Takes two positional arguments: an IP address and a port number of the target.
+* Prints flags to stdout: the framework will grep for flags in the stdout data, which can include one or more flags or even other data.
+* Is executable: an exploit can be written in any language or format as long as it is executable.
+
+An exploit tries to get a flag/the flags from a single target system. The scheduling for all the other targets is handled by the framework.
 
 ## Dependencies
 
@@ -32,6 +40,8 @@ _LIB_GAMESERVER_SUBMIT_VIA_HTTP=yes
 ```
 ./ctfpwn.sh
 ```
+
+*Note*: A deployment example is available in the [Vagrantfile](https://github.com/takeshixx/ctfpwnng/blob/master/Vagrantfile). It is recommended to always run CTFPWNng inside of a VM.
 
 ### Target Identification
 
