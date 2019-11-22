@@ -221,9 +221,7 @@ submit_flags_tcp(){
     fi
 }
 
-# RuCTFE 2017 introduced a HTTP-based
-# flag submission. This function will
-# process flags via the JSON API.
+# Submit flags via a JSON-based REST API
 submit_flags_http(){
     flags_unprocessed="$1"
     flags_formatted="["
@@ -287,7 +285,7 @@ submit_flags_http(){
 # or if the directory name starts with a
 # underscore (_).
 run_exploits(){
-    count=0
+    local count=0
     ips=$(wc -l targets/_all | awk '{print $1}')
     for SERVICE in $(ls exploits |grep -Pv "^_");do
         if [ -f "exploits/${SERVICE}/_disabled" ];then
