@@ -276,7 +276,7 @@ run_exploits(){
     count=0
     ips=$(wc -l targets/_all | awk '{print $1}')
     for SERVICE in $(ls exploits |grep -Pv "^_");do
-        if [ -f "exploits/${SERVICE}/_disabled" ];then
+        if [ -f "exploits/${SERVICE}/.disabled" ];then
             debug "exploits/${SERVICE} is disabled"
             continue
         fi
