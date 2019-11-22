@@ -1,7 +1,8 @@
 _DEBUG=
-_LIB_GAMESERVER_HOST="127.0.0.1"
-_LIB_GAMESERVER_PORT="9000"
-_LIB_GAMESERVER_URL=http://127.0.0.1:5000/flags
+_BASH_DEBUG=
+_LIB_GAMESERVER_HOST=
+_LIB_GAMESERVER_PORT=
+_LIB_GAMESERVER_URL=
 _LIB_GAMESERVER_SUBMIT_VIA_HTTP=
 # --
 _LIB_FLAG_REGEX="\w{31}="
@@ -28,11 +29,15 @@ if [ -f "localconf.sh" ];then
     source localconf.sh
 fi
 
+if [ -n "$_BASH_DEBUG" ];then
+    set -x
+fi
+
 # Print debug messages, most likely only
 # relevant during development.
 debug(){
     if [ -n "$_DEBUG" ];then
-        echo "$*"
+         _log "[d] $*"
     fi
 }
 
@@ -40,7 +45,7 @@ debug(){
 # to keep track of exploit iterations
 # and stuff like that.
 _log(){
-    echo "[$(date +'%T')] ${*}" >> "$_LIB_LOG_FILE"
+    echo "[$(date +'%T')] ${*}" | tee -a "$_LIB_LOG_FILE"
 }
 
 log(){
@@ -102,7 +107,7 @@ log_flags(){
 flag_already_processed(){
     FLAG=$1
     if [ -z "$FLAG" ];then
-        echo "Please provide a flag"
+        log_warning "Please provide a flag"
         return
     fi
     retval=$(echo -e "SISMEMBER ${_LIB_REDIS_FLAG_SET_ACCEPTED} ${FLAG}\nSISMEMBER ${_LIB_REDIS_FLAG_SET_EXPIRED} ${FLAG}\nSISMEMBER ${_LIB_REDIS_FLAG_SET_UNKNOWN} ${FLAG}" | redis-cli -s "$_LIB_REDIS_SOCKET" --raw)
@@ -145,16 +150,25 @@ check_file_descriptor(){
 # flags to the corresponding Redis sets.
 submit_flags(){
     flags_unprocessed=$(redis_client SMEMBERS "$_LIB_REDIS_FLAG_SET_UNPROCESSED" | tr " " "\n")
-    log_info "Trying to process $(echo -e "${flags_unprocessed}" | wc -l) flag(s)"
     flag_count=$(echo -e "${flags_unprocessed}" | wc -l)
     flag_count=$((flag_count-1))
-    if [ -z "$flag_count" ];then
+    if [ -z "$flag_count" -o "$flag_count" -eq 0 ];then
         log "No unprocessed flags found"
         return
+    else
+        log_info "Trying to process ${flag_count} flag(s)"
     fi
     if [ -n "$_LIB_GAMESERVER_SUBMIT_VIA_HTTP" ];then
+        if [ -z "$_LIB_GAMESERVER_URL" ];then
+            log_error "_LIB_GAMESERVER_URL not set!"
+            exit 1
+        fi
         submit_flags_http "$flags_unprocessed"
     else
+        if [ -z "$_LIB_GAMESERVER_HOST" -o -z "$_LIB_GAMESERVER_PORT" ];then
+            log_error "_LIB_GAMESERVER_HOST or _LIB_GAMESERVER_PORT not set!"
+            exit 1
+        fi
         submit_flags_tcp "$flags_unprocessed"
     fi
 }

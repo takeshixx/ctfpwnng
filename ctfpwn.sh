@@ -15,15 +15,20 @@ do_exit(){
 
 main(){
     log
-    log "Starting CTFPWN"
+    log "Starting CTFPWNng"
+    log
     check_dependencies
-    echo "Dependency check passed"
+    debug "Dependency check passed"
+    local counter=1
     while true;do
+        log "Starting run ${counter}"
+        counter=$((counter+1))
         log
         log "---------------------"
         log
         debug "Preparing target list"
-        if [ -f targets/_current ];then
+        if [ -s targets/_current ];then
+            log "Found $(wc -l targets/_current | awk '{print $1}') targets"
             cat targets/_current | tail -n +2 | grep -P "$_LIB_REGEX_IP" | grep -i open | awk '{print $2}' > targets/_all
         else
             log_error "No targets found! Please run targets/run-targets.sh"
