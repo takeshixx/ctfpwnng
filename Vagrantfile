@@ -67,15 +67,19 @@ Vagrant.configure("2") do |config|
     apt update
     apt install -y git redis parallel jq nmap python python-pip python python3-pip
     
+    sed -e '/bind 127.0.0.1 ::1/ s/^#*/#/' -i /etc/redis/redis.conf
+    echo "bind 0.0.0.0" >> /etc/redis/redis.conf
     echo "unixsocket /run/redis/redis.sock" >> /etc/redis/redis.conf
     echo "unixsocketperm 777" >> /etc/redis/redis.conf
     systemctl enable redis-server@
     systemctl restart redis
     
     setcap cap_net_bind_service,cap_net_admin,cap_net_raw+eip $(which nmap)
-    
-    sudo -u vagrant git clone https://github.com/takeshixx/ctfpwnng.git /home/vagrant/ctfpwnng
-    cd /home/vagrant/ctfpwnng/tests/ && sudo -u vagrant ./run-tests.sh
+
+    #CTFPWN_DIR=/home/vagrant/ctfpwnng
+    #sudo -u vagrant git clone https://github.com/takeshixx/ctfpwnng.git "${CTFPWN_DIR}"
+    CTFPWN_DIR=/vagrant
+    cd "${CTFPWN_DIR}/tests/" && sudo -u vagrant ./run-tests.sh
     
     pip3 install flask
   SHELL
